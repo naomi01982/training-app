@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="思考OS">
+<title>思考OS：具体⇔抽象トレーニング</title>
+<style>
+  :root {
+    --primary: #1a1a2e;
+    --accent: #e94560;
+    --accent2: #0f3460;
+    --accent3: #533483;
+    --gold: #f5a623;
+    --bg: #0d0d1a;
+    --card: #1e1e30;
+    --card2: #252540;
+    --text: #e8e8f0;
+    --muted: #888aaa;
+    --border: #333355;
+    --success: #4CAF50;
+    --warn: #FF9800;
+    --lvl1: #4fc3f7;
+    --lvl2: #a5d6a7;
+    --lvl3: #ffcc80;
+    --lvl4: #ce93d8;
+    --lvl5: #f48fb1;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    overflow-x: hidden;
+  }
+
+  /* ── screens ── */
+  .screen { display: none; min-height: 100vh; padding: 0; }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* ── HOME ── */
+  #screen-home {
+    background: linear-gradient(160deg, #0d0d1a 0%, #1a1a2e 50%, #0f2040 100%);
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
+
+  .home-top {
+    padding: 24px 20px 0;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .home-title { font-size: 13px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+  .streak-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(245,166,35,0.15); border: 1px solid rgba(245,166,35,0.4);
+    padding: 6px 12px; border-radius: 20px;
+    font-size: 13px; font-weight: 700; color: var(--gold);
+  }
+
+  .home-hero {
+    text-align: center;
+    padding: 32px 20px 24px;
+  }
+  .hero-icon { font-size: 64px; margin-bottom: 12px; }
+  .hero-title {
+    font-size: 28px; font-weight: 800; letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #fff 0%, #a0aac0 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  .hero-sub { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+  .today-card {
+    margin: 0 16px 20px;
+    background: linear-gradient(135deg, var(--accent) 0%, #c0392b 100%);
+    border-radius: 16px; padding: 18px 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    box-shadow: 0 8px 24px rgba(233,69,96,0.35);
+  }
+  .today-label { font-size: 12px; opacity: 0.85; margin-bottom: 4px; }
+  .today-text { font-size: 18px; font-weight: 700; }
+  .today-done {
+    background: rgba(255,255,255,0.2); border-radius: 20px;
+    padding: 6px 14px; font-size: 13px; font-weight: 600;
+  }
+
+  .level-section { padding: 0 16px; flex: 1; }
+  .section-label {
+    font-size: 11px; letter-spacing: 2px; color: var(--muted);
+    text-transform: uppercase; margin-bottom: 12px;
+  }
+  .level-grid { display: flex; flex-direction: column; gap: 10px; }
+
+  .level-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex; align-items: center; gap: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .level-card:active { transform: scale(0.98); }
+  .level-card.locked { opacity: 0.45; cursor: not-allowed; }
+  .level-card.completed { border-color: var(--success); }
+  .level-card::before {
+    content: ''; position: absolute; top: 0; left: 0;
+    width: 4px; height: 100%;
+  }
+  .level-card[data-level="1"]::before { background: var(--lvl1); }
+  .level-card[data-level="2"]::before { background: var(--lvl2); }
+  .level-card[data-level="3"]::before { background: var(--lvl3); }
+  .level-card[data-level="4"]::before { background: var(--lvl4); }
+  .level-card[data-level="5"]::before { background: var(--lvl5); }
+
+  .level-num {
+    width: 40px; height: 40px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 800; flex-shrink: 0;
+  }
+  .level-info { flex: 1; }
+  .level-name { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+  .level-desc { font-size: 12px; color: var(--muted); }
+  .level-prog { margin-top: 6px; display: flex; align-items: center; gap: 8px; }
+  .prog-bar { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .prog-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+  .prog-text { font-size: 11px; color: var(--muted); }
+  .level-lock { font-size: 18px; }
+
+  .home-footer { padding: 16px 16px env(safe-area-inset-bottom); }
+  .stats-row { display: flex; gap: 10px; }
+  .stat-card {
+    flex: 1; background: var(--card); border-radius: 12px;
+    padding: 12px; text-align: center;
+  }
+  .stat-num { font-size: 22px; font-weight: 800; }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* ── TRAINING ── */
+  #screen-train {
+    background: var(--bg);
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
+
+  .train-header {
+    display: flex; align-items: center;
+    padding: 16px 16px 8px; gap: 12px;
+  }
+  .back-btn {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: var(--card); border: none;
+    color: var(--text); font-size: 18px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .train-header-info { flex: 1; }
+  .train-level-badge {
+    font-size: 11px; font-weight: 700; letter-spacing: 1px;
+    opacity: 0.8; margin-bottom: 3px;
+  }
+  .train-header-title { font-size: 16px; font-weight: 700; }
+
+  .timer-ring {
+    width: 52px; height: 52px;
+    position: relative; flex-shrink: 0;
+  }
+  .timer-ring svg { transform: rotate(-90deg); }
+  .timer-ring .bg { stroke: var(--border); fill: none; }
+  .timer-ring .progress { fill: none; transition: stroke-dashoffset 1s linear; }
+  .timer-label {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 13px; font-weight: 700;
+  }
+
+  .q-progress-bar {
+    height: 3px; background: var(--border); margin: 0 16px 16px;
+    border-radius: 2px; overflow: hidden;
+  }
+  .q-progress-fill { height: 100%; transition: width 0.4s; }
+
+  .train-body { flex: 1; overflow-y: auto; padding: 0 16px; }
+
+  .q-header {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
+  }
+  .q-type-badge {
+    padding: 4px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+  .q-num { font-size: 13px; color: var(--muted); }
+
+  .q-card {
+    background: var(--card); border-radius: 16px;
+    padding: 20px; margin-bottom: 16px;
+    border: 1px solid var(--border);
+  }
+  .q-scenario-label {
+    font-size: 11px; color: var(--muted); letter-spacing: 1px;
+    text-transform: uppercase; margin-bottom: 10px;
+  }
+  .q-scenario {
+    background: var(--card2); border-radius: 10px;
+    padding: 14px; margin-bottom: 14px;
+    font-size: 14px; line-height: 1.7; color: #ccd;
+  }
+  .q-scenario .pill {
+    display: inline-block;
+    background: rgba(255,255,255,0.1);
+    border-radius: 6px; padding: 2px 8px;
+    font-size: 12px; margin: 4px 4px 4px 0;
+    font-style: normal;
+  }
+  .q-text { font-size: 16px; font-weight: 700; line-height: 1.5; }
+  .q-hint { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+
+  .answer-area {
+    background: var(--card); border-radius: 16px;
+    padding: 16px; margin-bottom: 14px;
+    border: 1px solid var(--border);
+  }
+  .answer-label { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .answer-input {
+    width: 100%; min-height: 100px;
+    background: var(--card2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px;
+    color: var(--text); font-size: 14px; line-height: 1.6;
+    resize: none; font-family: inherit;
+    transition: border-color 0.2s;
+  }
+  .answer-input:focus { outline: none; border-color: var(--accent); }
+
+  .reveal-btn {
+    width: 100%; padding: 13px;
+    background: transparent;
+    border: 1.5px solid var(--border);
+    border-radius: 12px; color: var(--muted);
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; margin-bottom: 10px;
+  }
+  .reveal-btn:active { background: var(--card); }
+
+  .answer-reveal {
+    display: none; background: var(--card);
+    border-radius: 16px; padding: 16px;
+    border: 1px solid var(--border);
+    margin-bottom: 14px;
+  }
+  .answer-reveal.show { display: block; }
+  .reveal-header { font-size: 12px; color: var(--gold); font-weight: 700; margin-bottom: 10px; }
+  .reveal-text { font-size: 14px; line-height: 1.7; }
+  .reveal-key {
+    background: rgba(245,166,35,0.1); border-radius: 8px;
+    padding: 10px 12px; margin-top: 10px;
+    font-size: 13px; color: var(--gold);
+    border-left: 3px solid var(--gold);
+  }
+  .reveal-key-label { font-size: 11px; color: var(--gold); opacity: 0.7; margin-bottom: 4px; }
+
+  .self-assess { margin-bottom: 16px; }
+  .assess-label { font-size: 13px; color: var(--muted); text-align: center; margin-bottom: 10px; }
+  .assess-btns { display: flex; gap: 8px; }
+  .assess-btn {
+    flex: 1; padding: 12px 6px;
+    border-radius: 12px; border: 1.5px solid var(--border);
+    background: var(--card); color: var(--text);
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; text-align: center;
+  }
+  .assess-btn.ok { border-color: var(--success); color: var(--success); }
+  .assess-btn.so { border-color: var(--warn); color: var(--warn); }
+  .assess-btn.no { border-color: var(--muted); }
+  .assess-btn:active { transform: scale(0.96); }
+
+  .next-btn {
+    display: none; width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--accent) 0%, #c0392b 100%);
+    border: none; border-radius: 14px;
+    color: #fff; font-size: 16px; font-weight: 700;
+    cursor: pointer; margin-bottom: 16px;
+    box-shadow: 0 6px 20px rgba(233,69,96,0.4);
+    transition: all 0.2s;
+  }
+  .next-btn:active { transform: scale(0.98); }
+  .next-btn.show { display: block; }
+
+  /* ── COMPLETE ── */
+  #screen-complete {
+    background: linear-gradient(160deg, #0d0d1a, #1a1a2e, #0f2040);
+    align-items: center; justify-content: center;
+    text-align: center; padding: 40px 24px;
+  }
+  .complete-icon { font-size: 72px; margin-bottom: 16px; }
+  .complete-title { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+  .complete-sub { font-size: 15px; color: var(--muted); margin-bottom: 32px; line-height: 1.6; }
+  .complete-stats {
+    display: flex; gap: 16px; margin-bottom: 32px; width: 100%;
+    justify-content: center;
+  }
+  .c-stat {
+    background: var(--card); border-radius: 14px;
+    padding: 16px 20px; flex: 1; max-width: 120px;
+  }
+  .c-stat-num { font-size: 28px; font-weight: 800; }
+  .c-stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .complete-msg {
+    background: var(--card); border-radius: 14px;
+    padding: 16px 20px; width: 100%; margin-bottom: 32px;
+    text-align: left; border-left: 4px solid var(--accent);
+  }
+  .complete-msg-label { font-size: 11px; color: var(--accent); font-weight: 700; margin-bottom: 6px; }
+  .complete-msg-text { font-size: 14px; line-height: 1.7; color: #ccd; }
+  .home-btn {
+    width: 100%; padding: 16px;
+    background: var(--card); border: 1.5px solid var(--border);
+    border-radius: 14px; color: var(--text);
+    font-size: 16px; font-weight: 700; cursor: pointer;
+  }
+
+  /* ── INTRO ── */
+  #screen-intro {
+    background: linear-gradient(160deg, #0d0d1a, #1a1a2e);
+    padding: 32px 20px;
+    align-items: center; justify-content: center;
+    text-align: center;
+  }
+  .intro-icon { font-size: 56px; margin-bottom: 20px; }
+  .intro-level-label {
+    font-size: 11px; letter-spacing: 2px; color: var(--muted);
+    text-transform: uppercase; margin-bottom: 8px;
+  }
+  .intro-title { font-size: 26px; font-weight: 800; margin-bottom: 12px; }
+  .intro-sub { font-size: 14px; color: var(--muted); line-height: 1.7; margin-bottom: 28px; }
+  .intro-points { width: 100%; margin-bottom: 32px; }
+  .intro-point {
+    background: var(--card); border-radius: 12px;
+    padding: 12px 16px; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 12px;
+    text-align: left;
+  }
+  .intro-point-icon { font-size: 22px; }
+  .intro-point-text { font-size: 14px; line-height: 1.5; }
+  .start-btn {
+    width: 100%; padding: 16px;
+    background: linear-gradient(135deg, var(--accent), #c0392b);
+    border: none; border-radius: 14px;
+    color: #fff; font-size: 17px; font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(233,69,96,0.4);
+  }
+
+  /* utility */
+  .hidden { display: none !important; }
+  .bounce { animation: bounce 0.4s ease; }
+  @keyframes bounce {
+    0%,100%{transform:scale(1)} 50%{transform:scale(1.15)}
+  }
+</style>
+</head>
+<body>
+
+<!-- ▼ HOME SCREEN -->
+<div id="screen-home" class="screen active">
+  <div class="home-top">
+    <div class="home-title">思考OS</div>
+    <div class="streak-badge">🔥 <span id="streak-count">0</span>日連続</div>
+  </div>
+
+  <div class="home-hero">
+    <div class="hero-icon">🧠</div>
+    <div class="hero-title">具体⇔抽象<br>営業トレーニング</div>
+    <div class="hero-sub">飲食店・サービス業向け<br>1日5分で思考力を鍛える</div>
+  </div>
+
+  <div class="today-card" id="today-card" onclick="startToday()">
+    <div>
+      <div class="today-label">今日のトレーニング</div>
+      <div class="today-text" id="today-text">タップして開始</div>
+    </div>
+    <div class="today-done" id="today-done">▶ 開始</div>
+  </div>
+
+  <div class="level-section">
+    <div class="section-label">レベル一覧</div>
+    <div class="level-grid" id="level-grid"></div>
+  </div>
+
+  <div class="home-footer">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num" id="total-q">0</div>
+        <div class="stat-label">累計問題数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="total-days">0</div>
+        <div class="stat-label">学習日数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="max-level">1</div>
+        <div class="stat-label">到達レベル</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ▼ INTRO SCREEN -->
+<div id="screen-intro" class="screen">
+  <div class="intro-icon" id="intro-icon">🎯</div>
+  <div class="intro-level-label" id="intro-level-label">LEVEL 1</div>
+  <div class="intro-title" id="intro-title">本質を掴む</div>
+  <div class="intro-sub" id="intro-sub">説明テキスト</div>
+  <div class="intro-points" id="intro-points"></div>
+  <button class="start-btn" onclick="startTraining()">トレーニング開始 →</button>
+</div>
+
+<!-- ▼ TRAINING SCREEN -->
+<div id="screen-train" class="screen">
+  <div class="train-header">
+    <button class="back-btn" onclick="confirmBack()">‹</button>
+    <div class="train-header-info">
+      <div class="train-level-badge" id="train-level-label">LEVEL 1</div>
+      <div class="train-header-title" id="train-level-title">本質を掴む</div>
+    </div>
+    <div class="timer-ring">
+      <svg width="52" height="52" viewBox="0 0 52 52">
+        <circle class="bg" cx="26" cy="26" r="22" stroke-width="4"/>
+        <circle id="timer-circle" class="progress" cx="26" cy="26" r="22"
+          stroke-width="4" stroke-dasharray="138.2" stroke-dashoffset="0" stroke="var(--accent)"/>
+      </svg>
+      <div class="timer-label" id="timer-label">5:00</div>
+    </div>
+  </div>
+
+  <div class="q-progress-bar">
+    <div class="q-progress-fill" id="q-prog-fill" style="width:0%"></div>
+  </div>
+
+  <div class="train-body" id="train-body"></div>
+</div>
+
+<!-- ▼ COMPLETE SCREEN -->
+<div id="screen-complete" class="screen">
+  <div class="complete-icon" id="complete-icon">🎉</div>
+  <div class="complete-title" id="complete-title">セッション完了！</div>
+  <div class="complete-sub" id="complete-sub">お疲れ様でした</div>
+  <div class="complete-stats">
+    <div class="c-stat">
+      <div class="c-stat-num" id="c-ok">0</div>
+      <div class="c-stat-label">できた✅</div>
+    </div>
+    <div class="c-stat">
+      <div class="c-stat-num" id="c-so">0</div>
+      <div class="c-stat-label">まあまあ🔶</div>
+    </div>
+    <div class="c-stat">
+      <div class="c-stat-num" id="c-no">0</div>
+      <div class="c-stat-label">もう一回🔁</div>
+    </div>
+  </div>
+  <div class="complete-msg" id="complete-msg">
+    <div class="complete-msg-label">今日のポイント</div>
+    <div class="complete-msg-text" id="complete-msg-text"></div>
+  </div>
+  <button class="home-btn" onclick="goHome()">ホームに戻る</button>
+</div>
+
+<script>
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// DATA
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const LEVELS = [
+  {
+    id: 1,
+    name: '本質を掴む',
+    tag: '具体 → 抽象',
+    color: 'var(--lvl1)',
+    icon: '🔍',
+    emoji: '🔍',
+    unlock: 0,  // always unlocked
+    intro: {
+      sub: '2つの具体的な事例から「共通する本質」を一言で言い表す練習です。営業では、お客様の言葉の裏にある本当の課題を見抜く力が問われます。',
+      points: [
+        { icon: '👁', text: '2つの具体例を見て、共通する「本質」を探す' },
+        { icon: '💡', text: '「要するに何が問題か？」を一言で言えるように' },
+        { icon: '🎯', text: '飲食店オーナーの悩みを言語化する練習' },
+      ]
+    },
+    questions: [
+      {
+        type: '共通点探し',
+        scenario: ['「毎月、店長がLINEでスタッフ一人ひとりにシフト確認をしている」', '「スタッフが給料明細を毎回もらいに店に来ないといけない」'],
+        q: 'この2つの課題に共通する「本質的な問題」を一言で言ってください',
+        hint: '💡 誰が何に時間を奪われているか？何が非効率の根本か？',
+        answer: '本来不要な作業が属人化・アナログ化されており、経営資源（時間）が無駄に消費されている状態です。',
+        key: '抽象化キーワード：「情報伝達の非効率」「アナログ業務の属人化」「生産性の損失」'
+      },
+      {
+        type: '共通点探し',
+        scenario: ['「ピーク時に人手が足りなくて毎回バタバタする」', '「閑散期にスタッフが多すぎて人件費が無駄になっている」'],
+        q: 'この2つの状況に共通する経営課題を一言で表してください',
+        hint: '💡 需要と人員の関係性に注目してみましょう',
+        answer: '需要変動に対して人員配置が最適化されていない「需給ミスマッチ」の状態です。シフト管理の精度が低いことが根本原因です。',
+        key: '抽象化キーワード：「需給ミスマッチ」「最適配置の欠如」「シフト精度の低さ」'
+      },
+      {
+        type: '共通点探し',
+        scenario: ['「スタッフが急に休んで代わりが見つからない」', '「予約のキャンセルが多くて仕込みが無駄になった」'],
+        q: 'オーナーの視点でこの2つを抽象化すると、どんなリスクですか？',
+        hint: '💡 予測できないことへの備えという視点で考えてみましょう',
+        answer: '不確実な変動に対するバッファ（余裕・対応力）がなく、変化が即座に損失につながる「脆弱な運営構造」です。',
+        key: '抽象化キーワード：「予測不能リスク」「バッファ管理の欠如」「運営の脆弱性」'
+      },
+      {
+        type: '共通点探し',
+        scenario: ['「新人スタッフがなかなか仕事を覚えられない」', '「ベテランが辞めたら回らなくなる業務がある」'],
+        q: 'この2つの根本原因を一言で言ってください',
+        hint: '💡 「誰でもできる状態」になっているかどうかを考えてみましょう',
+        answer: '業務が標準化・マニュアル化されておらず、特定の人の経験・記憶に依存している「属人化」の問題です。',
+        key: '抽象化キーワード：「業務の属人化」「標準化の欠如」「ナレッジ共有ゼロ」'
+      },
+      {
+        type: '共通点探し',
+        scenario: ['「オーナーが毎日お店にいないと回らない」', '「店長が全部確認しないと何も決められない」'],
+        q: 'この組織の本質的な問題は何ですか？',
+        hint: '💡 「誰がいれば/いなければ」どうなる、という構造に注目',
+        answer: '組織・仕組みではなく特定の人物に依存する「人依存経営」で、スケールも代替もできない状態です。',
+        key: '抽象化キーワード：「人依存経営」「権限移譲の欠如」「システム化の必要性」'
+      }
+    ]
+  },
+  {
+    id: 2,
+    name: '例を作る',
+    tag: '抽象 → 具体',
+    color: 'var(--lvl2)',
+    icon: '🏗',
+    emoji: '🏗',
+    unlock: 3,
+    intro: {
+      sub: '抽象的な概念を、飲食店オーナーが「あるある！」と感じる具体的な言葉に落とし込む練習です。相手の言語で話せることが、できる営業の条件です。',
+      points: [
+        { icon: '🗣', text: 'ビジネス用語を「現場の言葉」に翻訳する' },
+        { icon: '📊', text: '数字や具体例を使って実感を持たせる' },
+        { icon: '🎯', text: '「うちの話だ」と思ってもらえる言い方を習得' }
+      ]
+    },
+    questions: [
+      {
+        type: '具体化',
+        scenario: ['抽象概念：「業務効率化」'],
+        q: '飲食店オーナーへの提案で使える「業務効率化」の具体例を2つ言ってください',
+        hint: '💡 数字を使うと説得力が増します。何時間→何時間、など',
+        answer: '①「シフト作成を毎月10時間かけているのが、システムなら30分に。空いた時間でお客様への対応や新メニュー開発ができます。」\n②「勤怠計算の手作業をゼロにして、給与ミスも人件費の計算違いもなくなります。」',
+        key: '具体化のコツ：「〇時間が△時間に」「月△万円の削減」という数字で語る'
+      },
+      {
+        type: '具体化',
+        scenario: ['抽象概念：「機会損失」'],
+        q: '飲食店が感じる「機会損失」を、現場で起きやすい場面で2つ説明してください',
+        hint: '💡 「もったいない！」と感じてもらえる場面を想像して',
+        answer: '①「満席で断ったお客様が二度と来なかった。LINE予約があれば次回誘導できたのに。」\n②「イベント告知が間に合わず集客できなかった。デジタルチケットで事前販売していればリスクゼロだった。」',
+        key: '具体化のコツ：「あの時〇〇できていたら…」という後悔ストーリーが刺さる'
+      },
+      {
+        type: '具体化',
+        scenario: ['抽象概念：「コスト削減効果」'],
+        q: '月の人件費削減効果を、飲食店向けの実数字で提示してください',
+        hint: '💡 時給×削減時間で計算してみましょう',
+        answer: '「店長がシフト管理に月20時間かけているとします。時給換算1,500円なら月3万円。システム費用が月1万円でも、差し引き2万円のコスト削減になります。しかもその20時間が、売上づくりに使えます。」',
+        key: '具体化のコツ：ROI（投資対効果）を数字で出すと意思決定が早まる'
+      },
+      {
+        type: '具体化',
+        scenario: ['抽象概念：「顧客との信頼関係構築」'],
+        q: '初回営業訪問で飲食店オーナーに「信頼できる」と感じてもらえる、具体的な行動を3つ挙げてください',
+        hint: '💡 「この人は自分のことをわかってくれる」と感じる瞬間とは？',
+        answer: '①お店のピーク時間を避けてアポを取る（相手の業務を尊重している）\n②前回言われた課題を次の訪問で覚えてきて「あの件ですが…」と切り出す\n③競合店の事例ではなく「同規模の飲食店での事例」を持参する',
+        key: '具体化のコツ：相手の「文脈」で語ること。一般論より「同業他社の話」が刺さる'
+      },
+      {
+        type: '具体化',
+        scenario: ['抽象概念：「スケールアップの障壁」'],
+        q: '「2店舗目を出したいが出せない」飲食店オーナーが感じているリアルな課題を3つ言ってください',
+        hint: '💡 1店舗で手一杯の状態を想像してみましょう',
+        answer: '①「1店舗の管理だけで手一杯で、新店の準備をする余裕がない」\n②「2店舗のシフトを同時に管理する方法が想像できない」\n③「優秀なスタッフを新店に出すと今の店が回らなくなる」',
+        key: '具体化のコツ：多店舗展開の悩みに刺さる提案ができると大型受注に繋がる'
+      }
+    ]
+  },
+  {
+    id: 3,
+    name: 'WHYで深掘り',
+    tag: '抽象化 × 3回',
+    color: 'var(--lvl3)',
+    icon: '⛏',
+    emoji: '⛏',
+    unlock: 8,
+    intro: {
+      sub: '表面の課題から「本当の原因」まで、WHYを3回繰り返して深掘りする練習です。本質を掴んだ提案は「うちのことをわかってくれる」と感じてもらえます。',
+      points: [
+        { icon: '🌿', text: '「症状」ではなく「根本原因」に気づく' },
+        { icon: '🔗', text: 'WHY×3で課題の本質に辿り着く' },
+        { icon: '💰', text: '本質的な提案は単価が上がる' }
+      ]
+    },
+    questions: [
+      {
+        type: 'WHY×3深掘り',
+        scenario: ['課題：「飲食店のスタッフ離職率が高い」'],
+        q: 'WHYを3回繰り返して、根本原因まで掘り下げてください',
+        hint: '💡 表面：辞める → なぜ？ → なぜ？ → なぜ？ → 根本原因',
+        answer: 'WHY①：希望シフトが通らず不満が溜まるから\nWHY②：シフト管理がアナログで、スタッフの希望を把握しきれないから\nWHY③：シフト収集・調整・共有の仕組みが整っていないから\n\n【根本原因】スタッフ管理の仕組み化ができていないことが、満足度低下・離職を引き起こしている',
+        key: '提案の糸口：シフト管理のシステム化が離職率低下に直結することを示せる'
+      },
+      {
+        type: 'WHY×3深掘り',
+        scenario: ['課題：「オーナーが現場を離れられない」'],
+        q: 'オーナーが現場に縛られている根本原因をWHY×3で掘り下げてください',
+        hint: '💡 「なぜ離れられないのか」から出発して3回深めてみましょう',
+        answer: 'WHY①：スタッフに任せられる業務と任せられない業務が明確でないから\nWHY②：業務基準・マニュアルが整っておらず、スタッフの判断基準がバラバラだから\nWHY③：属人的な運営が長年続いており、仕組み化・標準化に投資してこなかったから\n\n【根本原因】業務の標準化と権限移譲の仕組みが欠如している',
+        key: '提案の糸口：勤怠・シフト管理の自動化がオーナーの時間を生み出す第一歩'
+      },
+      {
+        type: 'WHY×3深掘り',
+        scenario: ['課題：「売上が伸び悩んでいる」'],
+        q: '飲食店の売上停滞の根本原因をWHY×3で掘り下げてください',
+        hint: '💡 新規顧客とリピーターの両面から考えてみましょう',
+        answer: 'WHY①：リピーターが増えていないから\nWHY②：一度来たお客様を再度来店させる仕掛けがないから\nWHY③：顧客情報を蓄積・活用する仕組み（CRM・LINE活用）を持っていないから\n\n【根本原因】顧客との継続的なつながりを作るデジタル基盤がない',
+        key: '提案の糸口：デジタルチケット・LINE連携が再来店率向上に直結'
+      },
+      {
+        type: 'WHY×3深掘り',
+        scenario: ['課題：「採用してもすぐ辞めてしまう」'],
+        q: 'WHY×3で採用後の早期離職の根本原因を明らかにしてください',
+        hint: '💡 採用の問題ではなく定着の問題かもしれません',
+        answer: 'WHY①：入社後の環境・待遇への期待と現実にギャップがあるから\nWHY②：シフトの融通が利かない・給与計算が不透明など、働きやすさへの不満があるから\nWHY③：働く環境の整備（シフト・勤怠・コミュニケーション）より採用コストにばかり予算を使っているから\n\n【根本原因】採用より「定着させる環境づくり」への投資が不足している',
+        key: '提案の糸口：採用費より定着施策（システム投資）の方がROIが高いことを示す'
+      },
+      {
+        type: 'WHY×3深掘り',
+        scenario: ['課題：「店長が毎日残業している」'],
+        q: '店長残業の根本原因をWHY×3で掘り下げてください',
+        hint: '💡 何に時間を使っているか？から始めてみましょう',
+        answer: 'WHY①：売上管理・シフト作成・勤怠集計など事務作業に時間を取られているから\nWHY②：これらの業務がすべて手作業・アナログで処理されているから\nWHY③：システム化・自動化に投資するコスト感覚がなく、「手でやれば無料」と思われているから\n\n【根本原因】「店長の時間のコスト」が見えていないため、システム投資の判断ができていない',
+        key: '提案の糸口：店長残業コスト（時給×時間）と導入費用を比較して提示する'
+      }
+    ]
+  },
+  {
+    id: 4,
+    name: '解決策を出す',
+    tag: '具体化 × 提案',
+    color: 'var(--lvl4)',
+    icon: '⚡',
+    emoji: '⚡',
+    unlock: 13,
+    intro: {
+      sub: '本質的な課題を掴んだあと、具体的な解決策を素早く出す練習です。「御社の課題はXで、解決策はYです」と即答できる力が身につきます。',
+      points: [
+        { icon: '🔧', text: '課題に対する解決策を3つ素早く出す' },
+        { icon: '💼', text: 'Xshop製品との結びつきを自然に語れる' },
+        { icon: '🎤', text: '「提案力がある」と感じてもらえる言語化' }
+      ]
+    },
+    questions: [
+      {
+        type: '解決策提案',
+        scenario: ['課題：「シフト管理に毎月10時間以上かかっている」'],
+        q: 'この課題に対して、デジタルシステムで解決できることを3つ提案してください',
+        hint: '💡 現場視点で「何が変わるか」を具体的に',
+        answer: '①スタッフがLINEでシフト希望を提出→自動集計（収集作業をゼロに）\n②AIによるシフト自動生成で調整時間を大幅削減\n③複数店舗のシフトを1画面で一元管理（多店舗展開にも対応）',
+        key: '提案のコツ：「今何時間かかっているか」を先に聞いてから数字で効果を示す'
+      },
+      {
+        type: '解決策提案',
+        scenario: ['課題：「勤怠管理・給与計算でミスが頻発している」'],
+        q: 'クラウド勤怠システム導入でどう変わるか、3つのポイントで説明してください',
+        hint: '💡 ミスが減る・時間が減る・不満が減る、の3軸で考えてみましょう',
+        answer: '①打刻からシフト照合・給与計算まで自動化→ヒューマンエラーゼロ\n②スタッフ自身がアプリで労働時間を確認できる→給与の透明性でトラブル防止\n③管理者は月末集計作業が不要→本来の業務に集中できる',
+        key: '提案のコツ：「今月、給与ミスで謝った経験はありますか？」と先に聞く'
+      },
+      {
+        type: '解決策提案',
+        scenario: ['課題：「閑散期の集客策がない、割引しか手がない」'],
+        q: 'デジタルチケットを活用した集客策を3つ提案してください',
+        hint: '💡 単なる割引ではなく「体験の価値を先に届ける」発想で',
+        answer: '①閑散期限定の前売りランチチケットをLINEで販売→確実な来店予約を作る\n②誕生日月クーポン自動配信→リピーター化のきっかけ\n③「3回分まとめ買い」お得チケット→来店回数を約束してもらいLTV向上',
+        key: '提案のコツ：「割引ではなく、先に価値を届ける」という視点の転換が刺さる'
+      },
+      {
+        type: '解決策提案',
+        scenario: ['課題：「数字を把握できておらず感覚で経営している」'],
+        q: 'AIエージェントを活用した経営可視化の具体的な提案を3つしてください',
+        hint: '💡 「今よりどう変わるか」をオーナー目線で語りましょう',
+        answer: '①日次売上・人件費率・シフト充足率を自動集計、毎朝スマホに送信\n②「先週より客単価が下がっています」等の異常値を自動アラート\n③翌月の必要スタッフ数をデータから自動予測→採用タイミングの先手管理',
+        key: '提案のコツ：「毎朝何分、数字確認に使っていますか？」と先に聞く'
+      },
+      {
+        type: '解決策提案',
+        scenario: ['課題：「新規顧客獲得のコストが高く、費用対効果が悪い」'],
+        q: 'デジタル活用でLTV（顧客生涯価値）を高める提案を3つしてください',
+        hint: '💡 「新規獲得」より「リピート率アップ」の方がコスパが高い',
+        answer: '①LINE友達登録でデジタルクーポン配布→低コストで再来店促進\n②来店回数に応じたランク特典→常連化の仕組みをデジタルで実現\n③地域アプリ「ロイティX」との連携で地元ファンへのリーチを自動化',
+        key: '提案のコツ：「新規1人獲得コスト vs 既存顧客の再来店コスト」を比較して提示'
+      }
+    ]
+  },
+  {
+    id: 5,
+    name: 'PREP法で伝える',
+    tag: '言語化の総仕上げ',
+    color: 'var(--lvl5)',
+    icon: '🎤',
+    emoji: '🎤',
+    unlock: 18,
+    intro: {
+      sub: 'PREP法（結論→理由→具体例→結論）で、30秒〜1分でスパッと提案を言語化する最終トレーニングです。これができると「話がわかりやすい」と言われます。',
+      points: [
+        { icon: 'P', text: 'Point（結論）：最初に何をすすめるかを言う' },
+        { icon: 'R', text: 'Reason（理由）：なぜそれが必要かを言う' },
+        { icon: 'E', text: 'Example（具体例）：実際の事例・数字で示す' },
+        { icon: 'P', text: 'Point（結論）：もう一度、行動を促して締める' }
+      ]
+    },
+    questions: [
+      {
+        type: 'PREP法',
+        scenario: ['テーマ：「シフト管理システムを導入すべき理由」をPREP法で30秒で伝える'],
+        q: 'PREP法（結論→理由→具体例→結論）でまとめてみましょう',
+        hint: '💡 P→R→E→Pの順に1〜2文ずつ。合計4〜6文で完結に',
+        answer: '【P】シフト管理をシステム化することで、毎月10時間以上の作業を削減できます。\n【R】現在アナログで行っているシフト収集・調整・共有が、すべて自動化されるからです。\n【E】ある居酒屋チェーンでは導入後、店長の残業が月20時間減り、その時間を新メニュー開発に使えるようになりました。\n【P】ぜひ一度、デモで実際の画面をご覧いただけますか？',
+        key: 'PREP法のコツ：最初と最後に「結論」を置く。具体例は数字付きで。締めはYes/Noで答えられる問いかけで'
+      },
+      {
+        type: 'PREP法',
+        scenario: ['テーマ：「クラウド勤怠管理の導入理由」をPREP法でまとめる'],
+        q: 'PREP法（P→R→E→P）で30秒の提案をまとめてください',
+        hint: '💡 店長・スタッフ・オーナーの3者それぞれにメリットがあります',
+        answer: '【P】勤怠管理をクラウド化すれば、毎月の集計ミスと給与トラブルが一気に解決します。\n【R】打刻から給与計算まで自動でつながるため、手作業のヒューマンエラーがゼロになるからです。\n【E】ある飲食店では「給与が合わない」クレームが月2〜3件あったのが、導入後ゼロになりました。\n【P】スタッフの信頼と定着率にも直結するので、ぜひ試していただきたいです。',
+        key: 'PREP法のコツ：「月2〜3件のクレームがゼロに」など、変化前後の対比が刺さる'
+      },
+      {
+        type: 'PREP法',
+        scenario: ['テーマ：「デジタルチケット導入で売上が上がる理由」をPREP法でまとめる'],
+        q: 'PREP法で飲食店オーナーへの提案をまとめてください',
+        hint: '💡 「割引より価値を先に届ける」という視点を入れてみましょう',
+        answer: '【P】デジタルチケットを導入すると、閑散期の売上を安定させながらリピーターが増えます。\n【R】来店前に購入してもらうことで、確実な来店を約束でき、客離れを防げるからです。\n【E】ある居酒屋では誕生日クーポンをLINEで自動配信したところ、再来店率が1.3倍になりました。\n【P】低コストで始められるので、まず1ヶ月試してみませんか？',
+        key: 'PREP法のコツ：締めの「まず1ヶ月」など小さな一歩を提示すると行動につながる'
+      },
+      {
+        type: 'PREP法',
+        scenario: ['テーマ：「今すぐシステム投資すべき理由」をPREP法でまとめる'],
+        q: 'なぜ「後回しにするとコストが上がる」のかをPREP法で伝えてください',
+        hint: '💡 「先送りのコスト」を言語化するのが鍵です',
+        answer: '【P】システム投資を先送りするほど、実は損失が積み上がっています。\n【R】アナログで管理している間も、人件費・ミス対応コスト・機会損失は毎月発生し続けているからです。\n【E】シフト管理に月10時間かけている場合、年間120時間。時給2,000円なら年24万円を「見えないコスト」として払い続けています。\n【P】導入費用より先送りのコストの方が大きいことが多いので、今月の費用対効果を一緒に計算させてください。',
+        key: 'PREP法のコツ：「先送りのコスト」を数字で見せると、意思決定が劇的に早まる'
+      },
+      {
+        type: 'PREP法',
+        scenario: ['テーマ：「AIで経営判断を助けることの価値」をPREP法でまとめる'],
+        q: 'データに疎いオーナーにもわかるPREP法の提案文を作ってください',
+        hint: '💡 「感覚経営」vs「データ経営」の対比が効果的です',
+        answer: '【P】AIエージェントを使えば、毎朝5分で経営の全体像を把握できるようになります。\n【R】売上・人件費・シフト充足率を自動集計し、異常があればアラートを出してくれるからです。\n【E】あるラーメン店では「人件費率が高い日」をAIが自動検出し、翌月のシフトを調整。月5万円のコスト削減につながりました。\n【P】難しいことは一切不要です。スマホを見るだけでいい。ぜひ1週間だけ試してみてください。',
+        key: 'PREP法のコツ：「難しくない」というハードルを下げる一言が、ITに疎い層に効く'
+      }
+    ]
+  }
+];
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// STATE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+let state = {
+  progress: {}, // { levelId: { completed: [qIdx,...], ok:0, so:0, no:0 } }
+  streak: 0,
+  lastDate: null,
+  totalQ: 0,
+  totalDays: 0,
+  maxLevel: 1
+};
+
+let session = {
+  levelId: 1,
+  questions: [],
+  current: 0,
+  scores: { ok: 0, so: 0, no: 0 },
+  timerInterval: null,
+  seconds: 300
+};
+
+function loadState() {
+  const s = localStorage.getItem('xshop_train_v2');
+  if (s) state = JSON.parse(s);
+  // ensure all levels have progress
+  LEVELS.forEach(l => {
+    if (!state.progress[l.id]) state.progress[l.id] = { completed: [], ok: 0, so: 0, no: 0 };
+  });
+}
+
+function saveState() {
+  localStorage.setItem('xshop_train_v2', JSON.stringify(state));
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// STREAK
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function todayStr() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function checkAndUpdateStreak() {
+  const today = todayStr();
+  if (state.lastDate === today) return; // already trained today
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  if (state.lastDate === yesterday) {
+    state.streak++;
+  } else if (state.lastDate !== today) {
+    state.streak = 1;
+  }
+  state.lastDate = today;
+  state.totalDays++;
+  saveState();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// HOME
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function renderHome() {
+  document.getElementById('streak-count').textContent = state.streak;
+  document.getElementById('total-q').textContent = state.totalQ;
+  document.getElementById('total-days').textContent = state.totalDays;
+  document.getElementById('max-level').textContent = state.maxLevel;
+
+  // today card
+  const todayTrained = state.lastDate === todayStr();
+  const nextLevel = getNextLevel();
+  if (todayTrained) {
+    document.getElementById('today-text').textContent = '今日のトレーニング完了！';
+    document.getElementById('today-done').textContent = '✅ 完了';
+    document.getElementById('today-card').style.background = 'linear-gradient(135deg, #2d6a4f, #1b4332)';
+    document.getElementById('today-card').style.cursor = 'default';
+  } else {
+    document.getElementById('today-text').textContent = 'Level ' + nextLevel + ' に挑戦しよう';
+    document.getElementById('today-done').textContent = '▶ 開始';
+    document.getElementById('today-card').style.background = '';
+    document.getElementById('today-card').style.cursor = 'pointer';
+  }
+
+  // level cards
+  const grid = document.getElementById('level-grid');
+  grid.innerHTML = '';
+  LEVELS.forEach(lv => {
+    const prog = state.progress[lv.id];
+    const totalQ = lv.questions.length;
+    const done = prog.completed.length;
+    const isLocked = state.totalQ < lv.unlock;
+    const isCompleted = done >= totalQ;
+
+    const pct = Math.round(done / totalQ * 100);
+    const card = document.createElement('div');
+    card.className = 'level-card' + (isLocked ? ' locked' : '') + (isCompleted ? ' completed' : '');
+    card.setAttribute('data-level', lv.id);
+    if (!isLocked) card.onclick = () => openLevel(lv.id);
+
+    card.innerHTML = `
+      <div class="level-num" style="background:${lv.color}22;color:${lv.color}">${lv.id}</div>
+      <div class="level-info">
+        <div class="level-name">${lv.emoji} ${lv.name}</div>
+        <div class="level-desc">${lv.tag}</div>
+        <div class="level-prog">
+          <div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${lv.color}"></div></div>
+          <div class="prog-text">${done}/${totalQ}</div>
+        </div>
+      </div>
+      <div class="level-lock">${isLocked ? '🔒' : isCompleted ? '✅' : '›'}</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function getNextLevel() {
+  for (let i = LEVELS.length - 1; i >= 0; i--) {
+    if (state.totalQ >= LEVELS[i].unlock) return LEVELS[i].id;
+  }
+  return 1;
+}
+
+function startToday() {
+  if (state.lastDate === todayStr()) return;
+  openLevel(getNextLevel());
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// INTRO
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function openLevel(lvId) {
+  const lv = LEVELS.find(l => l.id === lvId);
+  session.levelId = lvId;
+
+  document.getElementById('intro-icon').textContent = lv.emoji;
+  document.getElementById('intro-level-label').textContent = 'LEVEL ' + lv.id;
+  document.getElementById('intro-title').textContent = lv.name;
+  document.getElementById('intro-sub').textContent = lv.intro.sub;
+
+  const pts = document.getElementById('intro-points');
+  pts.innerHTML = lv.intro.points.map(p => `
+    <div class="intro-point">
+      <div class="intro-point-icon">${p.icon}</div>
+      <div class="intro-point-text">${p.text}</div>
+    </div>
+  `).join('');
+
+  showScreen('intro');
+}
+
+function startTraining() {
+  const lv = LEVELS.find(l => l.id === session.levelId);
+  const prog = state.progress[lv.id];
+
+  // pick 3 questions: prioritize not-yet-completed
+  const notDone = lv.questions.map((q,i) => i).filter(i => !prog.completed.includes(i));
+  const done = lv.questions.map((q,i) => i).filter(i => prog.completed.includes(i));
+
+  let pool = [...notDone];
+  while (pool.length < 3 && done.length > 0) {
+    const pick = done.splice(Math.floor(Math.random()*done.length), 1)[0];
+    pool.push(pick);
+  }
+  pool = pool.slice(0, 3);
+  // shuffle
+  pool.sort(() => Math.random() - 0.5);
+
+  session.questions = pool.map(i => ({ ...lv.questions[i], idx: i }));
+  session.current = 0;
+  session.scores = { ok: 0, so: 0, no: 0 };
+
+  // timer
+  session.seconds = 300;
+  startTimer();
+
+  // header
+  document.getElementById('train-level-label').textContent = 'LEVEL ' + lv.id + ' · ' + lv.tag;
+  document.getElementById('train-level-title').textContent = lv.name;
+
+  showScreen('train');
+  renderQuestion();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// TIMER
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function startTimer() {
+  if (session.timerInterval) clearInterval(session.timerInterval);
+  session.timerInterval = setInterval(() => {
+    session.seconds--;
+    updateTimerDisplay();
+    if (session.seconds <= 0) {
+      clearInterval(session.timerInterval);
+    }
+  }, 1000);
+  updateTimerDisplay();
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(Math.abs(session.seconds) / 60);
+  const s = Math.abs(session.seconds) % 60;
+  const label = (session.seconds < 0 ? '+' : '') + m + ':' + String(s).padStart(2, '0');
+  document.getElementById('timer-label').textContent = label;
+
+  const max = 300;
+  const circumference = 138.2;
+  const elapsed = max - session.seconds;
+  const offset = Math.min(circumference, (elapsed / max) * circumference);
+  document.getElementById('timer-circle').style.strokeDashoffset = offset;
+  document.getElementById('timer-circle').style.stroke =
+    session.seconds < 60 ? '#FF6B6B' : session.seconds < 120 ? 'var(--gold)' : 'var(--accent)';
+}
+
+function stopTimer() {
+  if (session.timerInterval) clearInterval(session.timerInterval);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// QUESTION
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function renderQuestion() {
+  const lv = LEVELS.find(l => l.id === session.levelId);
+  const q = session.questions[session.current];
+  const total = session.questions.length;
+
+  // progress
+  const pct = (session.current / total) * 100;
+  document.getElementById('q-prog-fill').style.width = pct + '%';
+  document.getElementById('q-prog-fill').style.background = lv.color;
+
+  const body = document.getElementById('train-body');
+
+  const scenarioHTML = q.scenario.map(s =>
+    `<div class="pill">${s}</div>`
+  ).join('');
+
+  body.innerHTML = `
+    <div class="q-header">
+      <div class="q-type-badge" style="background:${lv.color}22;color:${lv.color}">${q.type}</div>
+      <div class="q-num">Q${session.current + 1} / ${total}</div>
+    </div>
+
+    <div class="q-card">
+      <div class="q-scenario-label">🏪 飲食店の場面</div>
+      <div class="q-scenario">${scenarioHTML}</div>
+      <div class="q-text">${q.q}</div>
+      ${q.hint ? `<div class="q-hint">${q.hint}</div>` : ''}
+    </div>
+
+    <div class="answer-area">
+      <div class="answer-label">✏️ あなたの答え</div>
+      <textarea class="answer-input" id="answer-input" placeholder="ここに考えを書いてみましょう…"></textarea>
+    </div>
+
+    <button class="reveal-btn" onclick="revealAnswer()">💡 模範解答を見る</button>
+
+    <div class="answer-reveal" id="answer-reveal">
+      <div class="reveal-header">模範解答・解説</div>
+      <div class="reveal-text">${q.answer.replace(/\n/g, '<br>')}</div>
+      <div class="reveal-key">
+        <div class="reveal-key-label">🔑 営業キーワード</div>
+        ${q.key}
+      </div>
+    </div>
+
+    <div class="self-assess" id="self-assess" style="display:none">
+      <div class="assess-label">自己評価してください</div>
+      <div class="assess-btns">
+        <button class="assess-btn ok" onclick="assess('ok')">✅ できた</button>
+        <button class="assess-btn so" onclick="assess('so')">🔶 まあまあ</button>
+        <button class="assess-btn no" onclick="assess('no')">🔁 もう一回</button>
+      </div>
+    </div>
+
+    <button class="next-btn" id="next-btn" onclick="nextQuestion()">
+      ${session.current + 1 < total ? '次の問題へ →' : 'セッション完了 🎉'}
+    </button>
+
+    <div style="height: calc(env(safe-area-inset-bottom) + 20px)"></div>
+  `;
+}
+
+function revealAnswer() {
+  document.getElementById('answer-reveal').classList.add('show');
+  document.getElementById('self-assess').style.display = 'block';
+  document.querySelector('.reveal-btn').style.display = 'none';
+}
+
+function assess(score) {
+  session.scores[score]++;
+
+  // mark q as completed
+  const q = session.questions[session.current];
+  const prog = state.progress[session.levelId];
+  if (!prog.completed.includes(q.idx)) {
+    prog.completed.push(q.idx);
+    state.totalQ++;
+  }
+  prog[score] = (prog[score] || 0) + 1;
+
+  // update max level
+  LEVELS.forEach(lv => {
+    if (state.totalQ >= lv.unlock && lv.id > state.maxLevel) {
+      state.maxLevel = lv.id;
+    }
+  });
+
+  saveState();
+
+  // highlight selected
+  document.querySelectorAll('.assess-btn').forEach(b => {
+    b.style.opacity = '0.4';
+    b.style.cursor = 'default';
+    b.onclick = null;
+  });
+  const map = { ok: 0, so: 1, no: 2 };
+  document.querySelectorAll('.assess-btn')[map[score]].style.opacity = '1';
+
+  document.getElementById('next-btn').classList.add('show');
+}
+
+function nextQuestion() {
+  session.current++;
+  if (session.current >= session.questions.length) {
+    finishSession();
+  } else {
+    document.getElementById('q-prog-fill').style.width =
+      ((session.current / session.questions.length) * 100) + '%';
+    renderQuestion();
+    document.getElementById('train-body').scrollTop = 0;
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// COMPLETE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const completeMsgs = [
+  '「本質を掴む力」は営業の最大の武器です。今日学んだ抽象化を、明日の商談で使ってみましょう。',
+  '「相手の言語で話す力」が身についてきています。次は数字を使った具体化を磨きましょう。',
+  '課題の根本原因を見抜く「WHY思考」は、提案の深さに直結します。明日も続けましょう！',
+  '解決策を素早く出す「提案力」が鍛えられています。PREP法と組み合わせると最強です。',
+  'PREP法でスパッと伝える力は、信頼感につながります。毎日少しずつ磨いていきましょう！'
+];
+
+function finishSession() {
+  stopTimer();
+  checkAndUpdateStreak();
+
+  document.getElementById('c-ok').textContent = session.scores.ok;
+  document.getElementById('c-so').textContent = session.scores.so;
+  document.getElementById('c-no').textContent = session.scores.no;
+
+  const lvIdx = session.levelId - 1;
+  document.getElementById('complete-msg-text').textContent = completeMsgs[lvIdx] || completeMsgs[0];
+
+  const total = session.scores.ok + session.scores.so + session.scores.no;
+  if (session.scores.ok === total) {
+    document.getElementById('complete-icon').textContent = '🏆';
+    document.getElementById('complete-title').textContent = '完璧です！';
+    document.getElementById('complete-sub').textContent = '全問「できた」！素晴らしい理解力です。';
+  } else if (session.scores.ok >= 2) {
+    document.getElementById('complete-icon').textContent = '🎉';
+    document.getElementById('complete-title').textContent = 'よくできました！';
+    document.getElementById('complete-sub').textContent = '確実に力がついています。この調子で続けましょう！';
+  } else {
+    document.getElementById('complete-icon').textContent = '💪';
+    document.getElementById('complete-title').textContent = 'セッション完了！';
+    document.getElementById('complete-sub').textContent = '難しい問題も、繰り返しが上達の近道です。明日また挑戦しましょう。';
+  }
+
+  showScreen('complete');
+}
+
+function confirmBack() {
+  if (confirm('トレーニングを中断しますか？')) {
+    stopTimer();
+    goHome();
+  }
+}
+
+function goHome() {
+  showScreen('home');
+  renderHome();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SCREEN
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// INIT
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+loadState();
+renderHome();
+</script>
+</body>
+</html>
